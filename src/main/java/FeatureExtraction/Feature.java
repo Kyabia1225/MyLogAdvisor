@@ -1,9 +1,14 @@
 package FeatureExtraction;
 
+import com.github.javaparser.ast.body.MethodDeclaration;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class Feature {
     private String directory;
     private String methodName;
-    private String errType;
+    private List<String> errType;
     private int containingMethodsNum;
     private int invokedMethodsNum;
     private String sourceCodeText;
@@ -30,12 +35,19 @@ public class Feature {
         this.methodName = methodName;
     }
 
-    public String getErrType() {
+    public List<String> getErrType() {
         return errType;
     }
 
-    public void setErrType(String errType) {
+    public void setErrType(List<String> errType) {
         this.errType = errType;
+    }
+
+    public void addErrType(String errType) {
+        if(this.errType == null) {
+            this.errType = new ArrayList<String>();
+        }
+        this.errType.add(errType);
     }
 
     public int getContainingMethodsNum() {
@@ -100,5 +112,64 @@ public class Feature {
 
     public void setLogged(boolean logged) {
         this.logged = logged;
+    }
+
+    @Override
+    public String toString() {
+        return "Feature{" +
+                "directory='" + directory + '\'' +
+                ", methodName='" + methodName + '\'' +
+                ", errType=" + errType +
+                ", containingMethodsNum=" + containingMethodsNum +
+                ", invokedMethodsNum=" + invokedMethodsNum +
+                ", sourceCodeText='" + sourceCodeText + '\'' +
+                ", settingFlag=" + settingFlag +
+                ", hasThrow=" + hasThrow +
+                ", returnSpecialValue=" + returnSpecialValue +
+                ", tryCatchBlockNum=" + tryCatchBlockNum +
+                ", logged=" + logged +
+                '}';
+    }
+}
+
+class Intermediate {
+    private Feature feature;
+    private MethodDeclaration methodDeclaration;
+
+    public Intermediate() {
+    }
+
+    public Feature getFeature() {
+        return feature;
+    }
+
+    public void setFeature(Feature feature) {
+        this.feature = feature;
+    }
+
+    public MethodDeclaration getMethodDeclaration() {
+        return methodDeclaration;
+    }
+
+    public void setMethodDeclaration(MethodDeclaration methodDeclaration) {
+        this.methodDeclaration = methodDeclaration;
+    }
+
+
+}
+
+class Counter {
+    private int times;
+
+    public int getTimes() {
+        return times;
+    }
+
+    public void count() {
+        this.times++;
+    }
+
+    public Counter(int times) {
+        this.times = times;
     }
 }
