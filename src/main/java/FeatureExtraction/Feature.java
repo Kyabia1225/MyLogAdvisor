@@ -10,7 +10,6 @@ public class Feature {
     private String methodName;
     private List<String> errType;
     private int containingMethodsNum;
-    private int invokedMethodsNum;
     private String sourceCodeText;
     private boolean settingFlag;
     private boolean hasThrow;
@@ -56,14 +55,6 @@ public class Feature {
 
     public void setContainingMethodsNum(int containingMethodsNum) {
         this.containingMethodsNum = containingMethodsNum;
-    }
-
-    public int getInvokedMethodsNum() {
-        return invokedMethodsNum;
-    }
-
-    public void setInvokedMethodsNum(int invokedMethodsNum) {
-        this.invokedMethodsNum = invokedMethodsNum;
     }
 
     public String getSourceCodeText() {
@@ -121,7 +112,6 @@ public class Feature {
                 ", methodName='" + methodName + '\'' +
                 ", errType=" + errType +
                 ", containingMethodsNum=" + containingMethodsNum +
-                ", invokedMethodsNum=" + invokedMethodsNum +
                 ", sourceCodeText='" + sourceCodeText + '\'' +
                 ", settingFlag=" + settingFlag +
                 ", hasThrow=" + hasThrow +
@@ -130,32 +120,6 @@ public class Feature {
                 ", logged=" + logged +
                 '}';
     }
-}
-
-class Intermediate {
-    private Feature feature;
-    private MethodDeclaration methodDeclaration;
-
-    public Intermediate() {
-    }
-
-    public Feature getFeature() {
-        return feature;
-    }
-
-    public void setFeature(Feature feature) {
-        this.feature = feature;
-    }
-
-    public MethodDeclaration getMethodDeclaration() {
-        return methodDeclaration;
-    }
-
-    public void setMethodDeclaration(MethodDeclaration methodDeclaration) {
-        this.methodDeclaration = methodDeclaration;
-    }
-
-
 }
 
 class Counter {

@@ -6,10 +6,8 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.AssignExpr;
 import com.github.javaparser.ast.expr.Expression;
-import com.github.javaparser.ast.stmt.CatchClause;
-import com.github.javaparser.ast.stmt.ExpressionStmt;
-import com.github.javaparser.ast.stmt.ReturnStmt;
-import com.github.javaparser.ast.stmt.TryStmt;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
@@ -37,7 +35,7 @@ public class CodeAnalysis {
         String path = "E:\\MyPaper\\hadoop\\hadoop-hdfs-project\\hadoop-hdfs-client\\src\\main\\java\\org\\apache\\hadoop\\hdfs";
         //ProjectRoot projectRoot = new ParserCollectionStrategy().collect(Paths.get(path));
         SourceRoot sourceRoot = new SourceRoot(Paths.get(path));
-        CompilationUnit cu = sourceRoot.parse("", "ClientContext.java");
+        CompilationUnit cu = sourceRoot.parse("", "BlockReader.java");
 
         ArrayList<String> classNameList = new ArrayList<>();
         //read all className
@@ -49,7 +47,7 @@ public class CodeAnalysis {
             }
         }, classNameList);
 
-        List<Intermediate> intermediateList = new ArrayList<>();
+        List<Feature>features = new ArrayList<>();
         //split code block
         for(String className:classNameList) {
             Optional<ClassOrInterfaceDeclaration> clazz = cu.getClassByName(className);
@@ -57,8 +55,6 @@ public class CodeAnalysis {
                 //get all methods
                 List<MethodDeclaration> methods = clazz.get().getMethods();
                 for(MethodDeclaration method:methods) {
-                    Intermediate intermediate = new Intermediate();
-                    intermediate.setMethodDeclaration(method);
                     Feature feature = new Feature();
                     feature.setDirectory(cu.getStorage().get().getDirectory().toString());
                     feature.setMethodName(method.getNameAsString());
@@ -106,10 +102,21 @@ public class CodeAnalysis {
                         }
                     }, null);
                     feature.setLogged(feature.getSourceCodeText().toLowerCase(Locale.ROOT).contains("log."));
-                    System.out.println(feature.toString());
+                    Counter containingMethodsCounter = new Counter(0);
+                    method.accept(new VoidVisitorAdapter<Counter>() {
+                        @Override
+                        public void visit(MethodCallExpr methodCallExpr, Counter counter) {
+                            counter.count();
+                            //System.out.println(methodCallExpr.getName());
+                            //todo: containing methods' name
+                        }
+                    }, containingMethodsCounter);
+                    feature.setContainingMethodsNum(containingMethodsCounter.getTimes());
+                    features.add(feature);
                 }
             }
         }
+        System.out.println(features.size());
 
     }
 }
