@@ -1,5 +1,6 @@
 package FeatureExtraction;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -11,9 +12,14 @@ import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+import com.github.javaparser.utils.Log;
+import com.github.javaparser.utils.ParserCollectionStrategy;
+import com.github.javaparser.utils.ProjectRoot;
 import com.github.javaparser.utils.SourceRoot;
-import org.checkerframework.checker.units.qual.A;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,23 +27,65 @@ import java.util.Locale;
 import java.util.Optional;
 
 public class CodeAnalysis {
-    public static boolean containsIgnoreCase(String cmp, String...val) {
-        cmp = cmp.toLowerCase(Locale.ROOT);
-        for(String c:val){
-            if(cmp.contains(c.toLowerCase(Locale.ROOT))){
-                return true;
+    private final String path;
+    private List<Feature> features;
+
+    public CodeAnalysis(String path) {
+        this.path = path;
+    }
+
+    public boolean outputToFile() {
+        if(this.features == null) {
+            Log.error("Nothing in features. Please try to parse.\n");
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        try{
+            String json = mapper.writeValueAsString(this.features);
+            BufferedWriter out = new BufferedWriter(new FileWriter("features.txt"));
+            out.write(json);
+            out.close();
+            Log.info("output to features.txt successfully\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+    public boolean tryToParse() {
+        Log.info("parsing, path: " + this.path + "\n");
+        try {
+            this.features = getFeatures();
+        }catch (Exception e) {
+            Log.error(e);
+            return false;
+        }
+        return true;
+    }
+
+    public List<Feature> getFeatures() {
+        if(this.features != null) {
+            return this.features;
+        }
+        List<Feature> res = new ArrayList<>();
+        ProjectRoot projectRoot = new ParserCollectionStrategy().collect(Paths.get(path));
+        List<SourceRoot> sourceRoots = projectRoot.getSourceRoots();
+        for(SourceRoot sourceRoot:sourceRoots) {
+            List<CompilationUnit> compilationUnits = sourceRoot.getCompilationUnits();
+            if(!compilationUnits.isEmpty()) {
+                for(CompilationUnit cu:compilationUnits) {
+                    List<Feature> features = parseCompilationUnit(cu);
+                    res.addAll(features);
+                }
             }
         }
-        return false;
+       return res;
     }
-    public static void main(String[] args) {
+    private List<Feature> parseCompilationUnit(CompilationUnit cu) {
 
-        String path = "E:\\MyPaper\\hadoop\\hadoop-hdfs-project\\hadoop-hdfs-client\\src\\main\\java\\org\\apache\\hadoop\\hdfs";
-        //ProjectRoot projectRoot = new ParserCollectionStrategy().collect(Paths.get(path));
-        SourceRoot sourceRoot = new SourceRoot(Paths.get(path));
-        CompilationUnit cu = sourceRoot.parse("", "BlockReader.java");
-
+        //features is used for result storage
+        List<Feature> features = new ArrayList<>();
         ArrayList<String> classNameList = new ArrayList<>();
+
         //read all className
         cu.accept(new VoidVisitorAdapter<List<String>>() {
             @Override
@@ -47,7 +95,6 @@ public class CodeAnalysis {
             }
         }, classNameList);
 
-        List<Feature>features = new ArrayList<>();
         //split code block
         for(String className:classNameList) {
             Optional<ClassOrInterfaceDeclaration> clazz = cu.getClassByName(className);
@@ -56,12 +103,20 @@ public class CodeAnalysis {
                 List<MethodDeclaration> methods = clazz.get().getMethods();
                 for(MethodDeclaration method:methods) {
                     Feature feature = new Feature();
-                    feature.setDirectory(cu.getStorage().get().getDirectory().toString());
+                    if(cu.getStorage().isPresent()) {
+                        feature.setDirectory(cu.getStorage().get().getDirectory().toString());
+                    }
                     feature.setMethodName(method.getNameAsString());
-                    String methodCodeText = method.getDeclarationAsString(false, true, true)
-                            +"\n" + method.getBody().get() + "\n";
+                    String methodCodeText = "";
+                    if(method.getBody().isPresent()) {
+                        methodCodeText = method.getDeclarationAsString(false, true, true)
+                                + "\n" + method.getBody().get() + "\n";
+                    } else {
+                        methodCodeText = method.getDeclarationAsString(false, true, true);
+                    }
                     feature.setSourceCodeText(methodCodeText);
                     Counter tryCatchBlockNum = new Counter(0);
+
                     //visit try stmt
                     method.accept(new ModifierVisitor<Counter>() {
                         @Override
@@ -75,12 +130,13 @@ public class CodeAnalysis {
                         }
                     }, tryCatchBlockNum);
                     feature.setTryCatchBlockNum(tryCatchBlockNum.getTimes());
+
                     //visit whether there is an assignment stmt with an assigned special value
                     method.accept(new VoidVisitorAdapter<Void>() {
                         @Override
                         public void visit(AssignExpr expr, Void arg) {
                             String value = expr.getValue().toString();
-                            if(containsIgnoreCase(value, "null", "empty", "-1", "fail", "exit", "warn")) {
+                            if(containsSpecialValue(value)) {
                                 feature.setSettingFlag(true);
                             }
                         }
@@ -91,7 +147,7 @@ public class CodeAnalysis {
                         public Visitable visit(ReturnStmt stmt, Void arg) {
                             if(stmt.getExpression().isPresent()) {
                                 Expression expression = stmt.getExpression().get();
-                                if(containsIgnoreCase(expression.toString(), "null", "empty", "-1", "fail", "0", "exit", "warn")) {
+                                if(containsSpecialValue(expression.toString())) {
                                     feature.setReturnSpecialValue(true);
                                 }
                             } else {
@@ -102,6 +158,7 @@ public class CodeAnalysis {
                         }
                     }, null);
                     feature.setLogged(feature.getSourceCodeText().toLowerCase(Locale.ROOT).contains("log."));
+                    //count callee methods
                     Counter containingMethodsCounter = new Counter(0);
                     method.accept(new VoidVisitorAdapter<Counter>() {
                         @Override
@@ -116,7 +173,22 @@ public class CodeAnalysis {
                 }
             }
         }
-        System.out.println(features.size());
-
+        return features;
     }
+
+    private boolean containsIgnoreCase(String cmp, String[] val) {
+        cmp = cmp.toLowerCase(Locale.ROOT);
+        for(String c:val){
+            if(cmp.contains(c.toLowerCase(Locale.ROOT))){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsSpecialValue(String cmp) {
+        String[] specialValues = {"null", "empty", "fail", "exit", "warn", "-1"};
+        return containsIgnoreCase(cmp, specialValues);
+    }
+
 }
