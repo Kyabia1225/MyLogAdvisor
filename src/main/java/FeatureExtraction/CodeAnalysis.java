@@ -1,5 +1,5 @@
 package FeatureExtraction;
-
+import java.util.logging.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
@@ -12,7 +12,6 @@ import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.visitor.ModifierVisitor;
 import com.github.javaparser.ast.visitor.Visitable;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
-import com.github.javaparser.utils.Log;
 import com.github.javaparser.utils.ParserCollectionStrategy;
 import com.github.javaparser.utils.ProjectRoot;
 import com.github.javaparser.utils.SourceRoot;
@@ -21,14 +20,12 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import java.util.*;
 
 public class CodeAnalysis {
     private final String path;
     private List<Feature> features;
+    private final Logger logger = Logger.getLogger("CodeAnalysis");
 
     public CodeAnalysis(String path) {
         this.path = path;
@@ -36,15 +33,15 @@ public class CodeAnalysis {
 
     public boolean outputToFile() {
         if(this.features == null) {
-            Log.error("Nothing in features. Please try to parse.\n");
+            logger.warning("Nothing in features. Please try to parse.\n");
         }
         ObjectMapper mapper = new ObjectMapper();
         try{
-            String json = mapper.writeValueAsString(this.features);
+            String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(this.features);
             BufferedWriter out = new BufferedWriter(new FileWriter("features.txt"));
             out.write(json);
             out.close();
-            Log.info("output to features.txt successfully\n");
+            logger.info("output to features.txt successfully\n");
         } catch (IOException e) {
             e.printStackTrace();
             return false;
@@ -52,13 +49,17 @@ public class CodeAnalysis {
         return true;
     }
     public boolean tryToParse() {
-        Log.info("parsing, path: " + this.path + "\n");
+        logger.info("parsing, path: " + this.path + "\n");
+        Date before = new Date();
         try {
             this.features = getFeatures();
         }catch (Exception e) {
-            Log.error(e);
+            e.printStackTrace();
             return false;
         }
+        Date after = new Date();
+        int parseTime = after.compareTo(before);
+        logger.info("parsing completed, it took " + parseTime + " s.\n");
         return true;
     }
 
@@ -70,6 +71,11 @@ public class CodeAnalysis {
         ProjectRoot projectRoot = new ParserCollectionStrategy().collect(Paths.get(path));
         List<SourceRoot> sourceRoots = projectRoot.getSourceRoots();
         for(SourceRoot sourceRoot:sourceRoots) {
+            try {
+                sourceRoot.tryToParse();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             List<CompilationUnit> compilationUnits = sourceRoot.getCompilationUnits();
             if(!compilationUnits.isEmpty()) {
                 for(CompilationUnit cu:compilationUnits) {
