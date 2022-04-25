@@ -1,6 +1,7 @@
 package FeatureExtraction;
 import java.util.logging.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -24,22 +25,21 @@ import java.util.*;
 
 public class CodeAnalysis {
     private final String path;
-    private List<Feature> features;
     private final Logger logger = Logger.getLogger("CodeAnalysis");
 
     public CodeAnalysis(String path) {
         this.path = path;
     }
 
-    public boolean outputToFile() {
-        if(this.features == null) {
+    public boolean outputToFile(List<Feature> features) {
+        if(features == null) {
             logger.warning("Nothing in features. Please try to parse.\n");
         }
         ObjectMapper mapper = new ObjectMapper();
         try{
-            String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(this.features);
-            BufferedWriter out = new BufferedWriter(new FileWriter("features.txt"));
-            out.write(json);
+            String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(features);
+            BufferedWriter out = new BufferedWriter(new FileWriter("features.txt", true));
+            out.write(json + ",\n");
             out.close();
             logger.info("output to features.txt successfully\n");
         } catch (IOException e) {
@@ -48,43 +48,45 @@ public class CodeAnalysis {
         }
         return true;
     }
-    public boolean tryToParse() {
-        logger.info("parsing, path: " + this.path + "\n");
-        Date before = new Date();
-        try {
-            this.features = getFeatures();
-        }catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-        Date after = new Date();
-        int parseTime = after.compareTo(before);
-        logger.info("parsing completed, it took " + parseTime + " s.\n");
-        return true;
-    }
 
-    public List<Feature> getFeatures() {
-        if(this.features != null) {
-            return this.features;
-        }
-        List<Feature> res = new ArrayList<>();
-        ProjectRoot projectRoot = new ParserCollectionStrategy().collect(Paths.get(path));
+//    public boolean tryToParse() {
+//        logger.info("parsing, path: " + this.path + "\n");
+//        Date before = new Date();
+//        try {
+//            this.features = getFeatures();
+//        }catch (Exception e) {
+//            e.printStackTrace();
+//            return false;
+//        }
+//        Date after = new Date();
+//        int parseTime = after.compareTo(before);
+//        logger.info("parsing completed, it took " + parseTime + " s.\n");
+//        return true;
+//    }
+
+    public void getFeatures() {
+        logger.info("Start parsing, path: " + this.path + "\n");
+        //List<Feature> res = new ArrayList<>();
+        ParserConfiguration parserConfiguration = new ParserConfiguration();
+        parserConfiguration.setStoreTokens(false);
+        parserConfiguration.setAttributeComments(false);
+        ProjectRoot projectRoot = new ParserCollectionStrategy(parserConfiguration).collect(Paths.get(path));
         List<SourceRoot> sourceRoots = projectRoot.getSourceRoots();
-        for(SourceRoot sourceRoot:sourceRoots) {
-            try {
-                sourceRoot.tryToParse();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            List<CompilationUnit> compilationUnits = sourceRoot.getCompilationUnits();
-            if(!compilationUnits.isEmpty()) {
-                for(CompilationUnit cu:compilationUnits) {
-                    List<Feature> features = parseCompilationUnit(cu);
-                    res.addAll(features);
+        for (int i = 0;i< sourceRoots.size();i++) {
+            sourceRoots.get(i).tryToParseParallelized();
+            List<CompilationUnit> compilationUnits = sourceRoots.get(i).getCompilationUnits();
+            if (!compilationUnits.isEmpty()) {
+                for (CompilationUnit compilationUnit : compilationUnits) {
+                    List<Feature> features = parseCompilationUnit(compilationUnit);
+                    outputToFile(features);
                 }
             }
+            compilationUnits.clear();
+            sourceRoots.set(i, null);
+            System.gc();
         }
-       return res;
+        logger.info("Parsing completed.\n");
+       //return res;
     }
     private List<Feature> parseCompilationUnit(CompilationUnit cu) {
 
