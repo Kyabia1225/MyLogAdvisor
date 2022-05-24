@@ -1,4 +1,5 @@
 package FeatureExtraction;
+import java.io.File;
 import java.util.logging.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javaparser.ParserConfiguration;
@@ -31,17 +32,22 @@ public class CodeAnalysis {
         this.path = path;
     }
 
-    public boolean outputToFile(List<Feature> features) {
+    public boolean outputToFile(List<Feature> features, String storagePath, String fileName) {
+        //String storagePath = "features/" + fileName;
+        File file = new File(storagePath + fileName);
+        if(file.exists()) {
+            logger.info(fileName + " exists.\n");
+        }
         if(features == null) {
             logger.warning("Nothing in features. Please try to parse.\n");
         }
         ObjectMapper mapper = new ObjectMapper();
         try{
             String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(features);
-            BufferedWriter out = new BufferedWriter(new FileWriter("features.txt", true));
-            out.write(json + ",\n");
+            BufferedWriter out = new BufferedWriter(new FileWriter(file, true));
+            out.write(json);
             out.close();
-            logger.info("output to features.txt successfully\n");
+            logger.info("output to " + storagePath + " successfully\n");
         } catch (IOException e) {
             e.printStackTrace();
             return false;
@@ -49,22 +55,8 @@ public class CodeAnalysis {
         return true;
     }
 
-//    public boolean tryToParse() {
-//        logger.info("parsing, path: " + this.path + "\n");
-//        Date before = new Date();
-//        try {
-//            this.features = getFeatures();
-//        }catch (Exception e) {
-//            e.printStackTrace();
-//            return false;
-//        }
-//        Date after = new Date();
-//        int parseTime = after.compareTo(before);
-//        logger.info("parsing completed, it took " + parseTime + " s.\n");
-//        return true;
-//    }
 
-    public void getFeatures() {
+    public void getFeatures(String storagePath) {
         logger.info("Start parsing, path: " + this.path + "\n");
         //List<Feature> res = new ArrayList<>();
         ParserConfiguration parserConfiguration = new ParserConfiguration();
@@ -78,7 +70,8 @@ public class CodeAnalysis {
             if (!compilationUnits.isEmpty()) {
                 for (CompilationUnit compilationUnit : compilationUnits) {
                     List<Feature> features = parseCompilationUnit(compilationUnit);
-                    outputToFile(features);
+                    outputToFile(features, storagePath, compilationUnit.getStorage().get().getFileName().split("\\.")[0] + ".json");
+                    features.clear();
                 }
             }
             compilationUnits.clear();
@@ -173,7 +166,6 @@ public class CodeAnalysis {
                         public void visit(MethodCallExpr methodCallExpr, Counter counter) {
                             counter.count();
                             //System.out.println(methodCallExpr.getName());
-                            //todo: containing methods' name
                         }
                     }, containingMethodsCounter);
                     feature.setContainingMethodsNum(containingMethodsCounter.getTimes());

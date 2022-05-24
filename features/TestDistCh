@@ -1,0 +1,67 @@
+[ {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-extras\\src\\test\\java\\org\\apache\\hadoop\\tools",
+  "methodName" : "testDistCh",
+  "errType" : null,
+  "containingMethodsNum" : 14,
+  "sourceCodeText" : "void testDistCh() throws Exception\n{\r\n    final Configuration conf = new Configuration();\r\n    conf.set(CapacitySchedulerConfiguration.PREFIX + CapacitySchedulerConfiguration.ROOT + \".\" + CapacitySchedulerConfiguration.QUEUES, \"default\");\r\n    conf.set(CapacitySchedulerConfiguration.PREFIX + CapacitySchedulerConfiguration.ROOT + \".default.\" + CapacitySchedulerConfiguration.CAPACITY, \"100\");\r\n    final MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).format(true).build();\r\n    final FileSystem fs = cluster.getFileSystem();\r\n    final FsShell shell = new FsShell(conf);\r\n    try {\r\n        final FileTree tree = new FileTree(fs, \"testDistCh\");\r\n        final FileStatus rootstatus = fs.getFileStatus(tree.rootdir);\r\n        runLsr(shell, tree.root, 0);\r\n        final String[] args = new String[NUN_SUBS];\r\n        final ChPermissionStatus[] newstatus = new ChPermissionStatus[NUN_SUBS];\r\n        args[0] = \"/test/testDistCh/sub0:sub1::\";\r\n        newstatus[0] = new ChPermissionStatus(rootstatus, \"sub1\", \"\", \"\");\r\n        args[1] = \"/test/testDistCh/sub1::sub2:\";\r\n        newstatus[1] = new ChPermissionStatus(rootstatus, \"\", \"sub2\", \"\");\r\n        args[2] = \"/test/testDistCh/sub2:::437\";\r\n        newstatus[2] = new ChPermissionStatus(rootstatus, \"\", \"\", \"437\");\r\n        args[3] = \"/test/testDistCh/sub3:sub1:sub2:447\";\r\n        newstatus[3] = new ChPermissionStatus(rootstatus, \"sub1\", \"sub2\", \"447\");\r\n        args[4] = \"/test/testDistCh/sub4::sub5:437\";\r\n        newstatus[4] = new ChPermissionStatus(rootstatus, \"\", \"sub5\", \"437\");\r\n        args[5] = \"/test/testDistCh/sub5:sub1:sub5:\";\r\n        newstatus[5] = new ChPermissionStatus(rootstatus, \"sub1\", \"sub5\", \"\");\r\n        args[6] = \"/test/testDistCh/sub6:sub3::437\";\r\n        newstatus[6] = new ChPermissionStatus(rootstatus, \"sub3\", \"\", \"437\");\r\n        System.out.println(\"args=\" + Arrays.asList(args).toString().replace(\",\", \",\\n  \"));\r\n        System.out.println(\"newstatus=\" + Arrays.asList(newstatus).toString().replace(\",\", \",\\n  \"));\r\n        new DistCh(MiniMRClientClusterFactory.create(this.getClass(), 2, conf).getConfig()).run(args);\r\n        runLsr(shell, tree.root, 0);\r\n        for (int i = 0; i < NUN_SUBS; i++) {\r\n            Path sub = new Path(tree.root + \"/sub\" + i);\r\n            checkFileStatus(newstatus[i], fs.getFileStatus(sub));\r\n            for (FileStatus status : fs.listStatus(sub)) {\r\n                checkFileStatus(newstatus[i], status);\r\n            }\r\n        }\r\n    } finally {\r\n        cluster.shutdown();\r\n    }\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 1,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-extras\\src\\test\\java\\org\\apache\\hadoop\\tools",
+  "methodName" : "checkFileStatus",
+  "errType" : null,
+  "containingMethodsNum" : 6,
+  "sourceCodeText" : "void checkFileStatus(ChPermissionStatus expected, FileStatus actual)\n{\r\n    Assert.assertEquals(expected.getUserName(), actual.getOwner());\r\n    Assert.assertEquals(expected.getGroupName(), actual.getGroup());\r\n    FsPermission perm = expected.getPermission();\r\n    if (actual.isFile() && expected.defaultPerm) {\r\n        perm = perm.applyUMask(UMASK);\r\n    }\r\n    Assert.assertEquals(perm, actual.getPermission());\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : false,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-extras\\src\\test\\java\\org\\apache\\hadoop\\tools",
+  "methodName" : "runLsr",
+  "errType" : null,
+  "containingMethodsNum" : 9,
+  "sourceCodeText" : "String runLsr(final FsShell shell, String root, int returnvalue) throws Exception\n{\r\n    System.out.println(\"root=\" + root + \", returnvalue=\" + returnvalue);\r\n    final ByteArrayOutputStream bytes = new ByteArrayOutputStream();\r\n    final PrintStream out = new PrintStream(bytes);\r\n    final PrintStream oldOut = System.out;\r\n    final PrintStream oldErr = System.err;\r\n    System.setOut(out);\r\n    System.setErr(out);\r\n    final String results;\r\n    try {\r\n        Assert.assertEquals(returnvalue, shell.run(new String[] { \"-lsr\", root }));\r\n        results = bytes.toString();\r\n    } finally {\r\n        IOUtils.closeStream(out);\r\n        System.setOut(oldOut);\r\n        System.setErr(oldErr);\r\n    }\r\n    System.out.println(\"results:\\n\" + results);\r\n    return results;\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 1,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-extras\\src\\test\\java\\org\\apache\\hadoop\\mapred\\tools",
+  "methodName" : "setUpJobTracker",
+  "errType" : null,
+  "containingMethodsNum" : 1,
+  "sourceCodeText" : "void setUpJobTracker() throws IOException, InterruptedException\n{\r\n    cluster = new MiniMRCluster(0, \"file:///\", 1);\r\n    conf = cluster.createJobConf();\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-extras\\src\\test\\java\\org\\apache\\hadoop\\mapred\\tools",
+  "methodName" : "tearDownJobTracker",
+  "errType" : null,
+  "containingMethodsNum" : 1,
+  "sourceCodeText" : "void tearDownJobTracker() throws IOException\n{\r\n    cluster.shutdown();\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-extras\\src\\test\\java\\org\\apache\\hadoop\\mapred\\tools",
+  "methodName" : "getTool",
+  "errType" : null,
+  "containingMethodsNum" : 0,
+  "sourceCodeText" : "Tool getTool(PrintStream o)\n{\r\n    return new GetGroups(conf, o);\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : false,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+} ]

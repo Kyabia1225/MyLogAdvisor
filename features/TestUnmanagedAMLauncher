@@ -1,0 +1,67 @@
+[ {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-yarn-project\\hadoop-yarn\\hadoop-yarn-applications\\hadoop-yarn-applications-unmanaged-am-launcher\\src\\test\\java\\org\\apache\\hadoop\\yarn\\applications\\unmanagedamlauncher",
+  "methodName" : "setup",
+  "errType" : [ "InterruptedException" ],
+  "containingMethodsNum" : 19,
+  "sourceCodeText" : "void setup() throws InterruptedException, IOException\n{\r\n    LOG.info(\"Starting up YARN cluster\");\r\n    conf.setInt(YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB, 128);\r\n    if (yarnCluster == null) {\r\n        yarnCluster = new MiniYARNCluster(TestUnmanagedAMLauncher.class.getSimpleName(), 1, 1, 1);\r\n        yarnCluster.init(conf);\r\n        yarnCluster.start();\r\n        Configuration yarnClusterConfig = yarnCluster.getConfig();\r\n        LOG.info(\"MiniYARN ResourceManager published address: \" + yarnClusterConfig.get(YarnConfiguration.RM_ADDRESS));\r\n        LOG.info(\"MiniYARN ResourceManager published web address: \" + yarnClusterConfig.get(YarnConfiguration.RM_WEBAPP_ADDRESS));\r\n        String webapp = yarnClusterConfig.get(YarnConfiguration.RM_WEBAPP_ADDRESS);\r\n        assertTrue(\"Web app address still unbound to a host at \" + webapp, !webapp.startsWith(\"0.0.0.0\"));\r\n        LOG.info(\"Yarn webapp is at \" + webapp);\r\n        URL url = Thread.currentThread().getContextClassLoader().getResource(\"yarn-site.xml\");\r\n        if (url == null) {\r\n            throw new RuntimeException(\"Could not find 'yarn-site.xml' dummy file in classpath\");\r\n        }\r\n        ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();\r\n        yarnClusterConfig.writeXml(bytesOut);\r\n        bytesOut.close();\r\n        OutputStream os = new FileOutputStream(new File(url.getPath()));\r\n        os.write(bytesOut.toByteArray());\r\n        os.close();\r\n    }\r\n    try {\r\n        Thread.sleep(2000);\r\n    } catch (InterruptedException e) {\r\n        LOG.info(\"setup thread sleep interrupted. message=\" + e.getMessage());\r\n    }\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 1,
+  "logged" : true
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-yarn-project\\hadoop-yarn\\hadoop-yarn-applications\\hadoop-yarn-applications-unmanaged-am-launcher\\src\\test\\java\\org\\apache\\hadoop\\yarn\\applications\\unmanagedamlauncher",
+  "methodName" : "tearDown",
+  "errType" : null,
+  "containingMethodsNum" : 1,
+  "sourceCodeText" : "void tearDown() throws IOException\n{\r\n    if (yarnCluster != null) {\r\n        try {\r\n            yarnCluster.stop();\r\n        } finally {\r\n            yarnCluster = null;\r\n        }\r\n    }\r\n}\n",
+  "settingFlag" : true,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 1,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-yarn-project\\hadoop-yarn\\hadoop-yarn-applications\\hadoop-yarn-applications-unmanaged-am-launcher\\src\\test\\java\\org\\apache\\hadoop\\yarn\\applications\\unmanagedamlauncher",
+  "methodName" : "getTestRuntimeClasspath",
+  "errType" : null,
+  "containingMethodsNum" : 6,
+  "sourceCodeText" : "String getTestRuntimeClasspath()\n{\r\n    LOG.info(\"Trying to generate classpath for app master from current thread's classpath\");\r\n    String envClassPath = \"\";\r\n    String cp = System.getProperty(\"java.class.path\");\r\n    if (cp != null) {\r\n        envClassPath += cp.trim() + File.pathSeparator;\r\n    }\r\n    ClassLoader thisClassLoader = Thread.currentThread().getContextClassLoader();\r\n    URL url = thisClassLoader.getResource(\"yarn-site.xml\");\r\n    envClassPath += new File(url.getFile()).getParent();\r\n    return envClassPath;\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : false,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : true
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-yarn-project\\hadoop-yarn\\hadoop-yarn-applications\\hadoop-yarn-applications-unmanaged-am-launcher\\src\\test\\java\\org\\apache\\hadoop\\yarn\\applications\\unmanagedamlauncher",
+  "methodName" : "testUMALauncher",
+  "errType" : null,
+  "containingMethodsNum" : 15,
+  "sourceCodeText" : "void testUMALauncher() throws Exception\n{\r\n    String classpath = getTestRuntimeClasspath();\r\n    String javaHome = System.getenv(\"JAVA_HOME\");\r\n    if (javaHome == null) {\r\n        LOG.error(\"JAVA_HOME not defined. Test not running.\");\r\n        return;\r\n    }\r\n    String[] args = { \"--classpath\", classpath, \"--queue\", \"default\", \"--cmd\", javaHome + \"/bin/java -Xmx512m \" + TestUnmanagedAMLauncher.class.getCanonicalName() + \" success\" };\r\n    LOG.info(\"Initializing Launcher\");\r\n    UnmanagedAMLauncher launcher = new UnmanagedAMLauncher(new Configuration(yarnCluster.getConfig())) {\r\n\r\n        public void launchAM(ApplicationAttemptId attemptId) throws IOException, YarnException {\r\n            YarnApplicationAttemptState attemptState = rmClient.getApplicationAttemptReport(attemptId).getYarnApplicationAttemptState();\r\n            Assert.assertTrue(attemptState.equals(YarnApplicationAttemptState.LAUNCHED));\r\n            super.launchAM(attemptId);\r\n        }\r\n    };\r\n    boolean initSuccess = launcher.init(args);\r\n    Assert.assertTrue(initSuccess);\r\n    LOG.info(\"Running Launcher\");\r\n    boolean result = launcher.run();\r\n    LOG.info(\"Launcher run completed. Result=\" + result);\r\n    Assert.assertTrue(result);\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : true,
+  "tryCatchBlockNum" : 0,
+  "logged" : true
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-yarn-project\\hadoop-yarn\\hadoop-yarn-applications\\hadoop-yarn-applications-unmanaged-am-launcher\\src\\test\\java\\org\\apache\\hadoop\\yarn\\applications\\unmanagedamlauncher",
+  "methodName" : "testUMALauncherError",
+  "errType" : [ "RuntimeException" ],
+  "containingMethodsNum" : 11,
+  "sourceCodeText" : "void testUMALauncherError() throws Exception\n{\r\n    String classpath = getTestRuntimeClasspath();\r\n    String javaHome = System.getenv(\"JAVA_HOME\");\r\n    if (javaHome == null) {\r\n        LOG.error(\"JAVA_HOME not defined. Test not running.\");\r\n        return;\r\n    }\r\n    String[] args = { \"--classpath\", classpath, \"--queue\", \"default\", \"--cmd\", javaHome + \"/bin/java -Xmx512m \" + TestUnmanagedAMLauncher.class.getCanonicalName() + \" failure\" };\r\n    LOG.info(\"Initializing Launcher\");\r\n    UnmanagedAMLauncher launcher = new UnmanagedAMLauncher(new Configuration(yarnCluster.getConfig()));\r\n    boolean initSuccess = launcher.init(args);\r\n    Assert.assertTrue(initSuccess);\r\n    LOG.info(\"Running Launcher\");\r\n    try {\r\n        launcher.run();\r\n        fail(\"Expected an exception to occur as launch should have failed\");\r\n    } catch (RuntimeException e) {\r\n    }\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : true,
+  "tryCatchBlockNum" : 1,
+  "logged" : true
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-yarn-project\\hadoop-yarn\\hadoop-yarn-applications\\hadoop-yarn-applications-unmanaged-am-launcher\\src\\test\\java\\org\\apache\\hadoop\\yarn\\applications\\unmanagedamlauncher",
+  "methodName" : "main",
+  "errType" : null,
+  "containingMethodsNum" : 8,
+  "sourceCodeText" : "void main(String[] args) throws Exception\n{\r\n    if (args[0].equals(\"success\")) {\r\n        ApplicationMasterProtocol client = ClientRMProxy.createRMProxy(conf, ApplicationMasterProtocol.class);\r\n        client.registerApplicationMaster(RegisterApplicationMasterRequest.newInstance(NetUtils.getHostname(), -1, \"\"));\r\n        Thread.sleep(1000);\r\n        FinishApplicationMasterResponse resp = client.finishApplicationMaster(FinishApplicationMasterRequest.newInstance(FinalApplicationStatus.SUCCEEDED, \"success\", null));\r\n        assertTrue(resp.getIsUnregistered());\r\n        System.exit(0);\r\n    } else {\r\n        System.exit(1);\r\n    }\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+} ]

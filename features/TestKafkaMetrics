@@ -1,0 +1,23 @@
+[ {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-kafka\\src\\test\\java\\org\\apache\\hadoop\\metrics2\\impl",
+  "methodName" : "testPutMetrics",
+  "errType" : null,
+  "containingMethodsNum" : 25,
+  "sourceCodeText" : "void testPutMetrics() throws Exception\n{\r\n    MetricsRecord record = mock(MetricsRecord.class);\r\n    when(record.tags()).thenReturn(Lists.newArrayList(new MetricsTag(KafkaMetricsInfo.KafkaTag, \"test_tag\")));\r\n    when(record.timestamp()).thenReturn(System.currentTimeMillis());\r\n    AbstractMetric metric = new AbstractMetric(KafkaMetricsInfo.KafkaCounter) {\r\n\r\n        @Override\r\n        public Number value() {\r\n            return new Integer(123);\r\n        }\r\n\r\n        @Override\r\n        public MetricType type() {\r\n            return null;\r\n        }\r\n\r\n        @Override\r\n        public void visit(MetricsVisitor visitor) {\r\n        }\r\n    };\r\n    Iterable<AbstractMetric> metrics = Lists.newArrayList(metric);\r\n    when(record.name()).thenReturn(\"Kafka record name\");\r\n    when(record.metrics()).thenReturn(metrics);\r\n    SubsetConfiguration conf = mock(SubsetConfiguration.class);\r\n    when(conf.getString(KafkaSink.BROKER_LIST)).thenReturn(\"localhost:9092\");\r\n    String topic = \"myTestKafkaTopic\";\r\n    when(conf.getString(KafkaSink.TOPIC)).thenReturn(topic);\r\n    kafkaSink = new KafkaSink();\r\n    kafkaSink.init(conf);\r\n    Producer<Integer, byte[]> mockProducer = mock(KafkaProducer.class);\r\n    kafkaSink.setProducer(mockProducer);\r\n    StringBuilder jsonLines = recordToJson(record);\r\n    if (LOG.isDebugEnabled()) {\r\n        LOG.debug(\"kafka message: \" + jsonLines.toString());\r\n    }\r\n    Future<RecordMetadata> f = mock(Future.class);\r\n    when(mockProducer.send(any())).thenReturn(f);\r\n    kafkaSink.putMetrics(record);\r\n    ArgumentCaptor<ProducerRecord> argument = ArgumentCaptor.forClass(ProducerRecord.class);\r\n    verify(mockProducer).send(argument.capture());\r\n    ProducerRecord<Integer, byte[]> data = (argument.getValue());\r\n    String jsonResult = new String(data.value());\r\n    if (LOG.isDebugEnabled()) {\r\n        LOG.debug(\"kafka result: \" + jsonResult);\r\n    }\r\n    assertThat(jsonLines.toString()).isEqualTo(jsonResult);\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : true,
+  "tryCatchBlockNum" : 0,
+  "logged" : true
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-kafka\\src\\test\\java\\org\\apache\\hadoop\\metrics2\\impl",
+  "methodName" : "recordToJson",
+  "errType" : [ "Exception" ],
+  "containingMethodsNum" : 17,
+  "sourceCodeText" : "StringBuilder recordToJson(MetricsRecord record)\n{\r\n    StringBuilder jsonLines = new StringBuilder();\r\n    Long timestamp = record.timestamp();\r\n    Date currDate = new Date(timestamp);\r\n    SimpleDateFormat dateFormat = new SimpleDateFormat(\"yyyy-MM-dd\");\r\n    String date = dateFormat.format(currDate);\r\n    SimpleDateFormat timeFormat = new SimpleDateFormat(\"HH:mm:ss\");\r\n    String time = timeFormat.format(currDate);\r\n    String hostname = new String(\"null\");\r\n    try {\r\n        hostname = InetAddress.getLocalHost().getHostName();\r\n    } catch (Exception e) {\r\n        LOG.warn(\"Error getting Hostname, going to continue\");\r\n    }\r\n    jsonLines.append(\"{\\\"hostname\\\": \\\"\" + hostname);\r\n    jsonLines.append(\"\\\", \\\"timestamp\\\": \" + timestamp);\r\n    jsonLines.append(\", \\\"date\\\": \\\"\" + date);\r\n    jsonLines.append(\"\\\",\\\"time\\\": \\\"\" + time);\r\n    jsonLines.append(\"\\\",\\\"name\\\": \\\"\" + record.name() + \"\\\" \");\r\n    for (MetricsTag tag : record.tags()) {\r\n        jsonLines.append(\", \\\"\" + tag.name().toString().replaceAll(\"[\\\\p{Cc}]\", \"\") + \"\\\": \");\r\n        jsonLines.append(\" \\\"\" + tag.value().toString() + \"\\\"\");\r\n    }\r\n    for (AbstractMetric m : record.metrics()) {\r\n        jsonLines.append(\", \\\"\" + m.name().toString().replaceAll(\"[\\\\p{Cc}]\", \"\") + \"\\\": \");\r\n        jsonLines.append(\" \\\"\" + m.value().toString() + \"\\\"\");\r\n    }\r\n    jsonLines.append(\"}\");\r\n    return jsonLines;\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : false,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 1,
+  "logged" : true
+} ]

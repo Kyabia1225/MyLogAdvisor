@@ -2,3 +2,5 @@
 .gitignore
 target/
 features.txt
+features.zip
+features/

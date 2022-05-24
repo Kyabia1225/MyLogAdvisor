@@ -1,0 +1,133 @@
+[ {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-infra\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer",
+  "methodName" : "testParseStaleDatanodeListSingleDatanode",
+  "errType" : null,
+  "containingMethodsNum" : 3,
+  "sourceCodeText" : "void testParseStaleDatanodeListSingleDatanode() throws Exception\n{\r\n    String json = \"{\" + \"\\\"1.2.3.4:5\\\": {\" + \"  \\\"numBlocks\\\": 5,\" + \"  \\\"fooString\\\":\\\"stringValue\\\",\" + \"  \\\"fooInteger\\\": 1,\" + \"  \\\"fooFloat\\\": 1.0,\" + \"  \\\"fooArray\\\": []\" + \"}\" + \"}\";\r\n    Set<String> out = DynoInfraUtils.parseStaleDataNodeList(json, 10, LOG);\r\n    assertEquals(1, out.size());\r\n    assertTrue(out.contains(\"1.2.3.4:5\"));\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-infra\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer",
+  "methodName" : "testParseStaleDatanodeListMultipleDatanodes",
+  "errType" : null,
+  "containingMethodsNum" : 4,
+  "sourceCodeText" : "void testParseStaleDatanodeListMultipleDatanodes() throws Exception\n{\r\n    String json = \"{\" + \"\\\"1.2.3.4:1\\\": {\\\"numBlocks\\\": 0}, \" + \"\\\"1.2.3.4:2\\\": {\\\"numBlocks\\\": 15}, \" + \"\\\"1.2.3.4:3\\\": {\\\"numBlocks\\\": 5}, \" + \"\\\"1.2.3.4:4\\\": {\\\"numBlocks\\\": 10} \" + \"}\";\r\n    Set<String> out = DynoInfraUtils.parseStaleDataNodeList(json, 10, LOG);\r\n    assertEquals(2, out.size());\r\n    assertTrue(out.contains(\"1.2.3.4:1\"));\r\n    assertTrue(out.contains(\"1.2.3.4:3\"));\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-infra\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer",
+  "methodName" : "setupClass",
+  "errType" : [ "IOException" ],
+  "containingMethodsNum" : 57,
+  "sourceCodeText" : "void setupClass() throws Exception\n{\r\n    PlatformAssumptions.assumeNotWindows(\"Dynamometer will not run on Windows\");\r\n    Assume.assumeThat(\"JAVA_HOME must be set properly\", System.getenv(\"JAVA_HOME\"), notNullValue());\r\n    try {\r\n        Shell.ShellCommandExecutor tarCheck = new Shell.ShellCommandExecutor(new String[] { \"bash\", \"-c\", \"command -v tar\" });\r\n        tarCheck.execute();\r\n        Assume.assumeTrue(\"tar command is not available\", tarCheck.getExitCode() == 0);\r\n    } catch (IOException ioe) {\r\n        Assume.assumeNoException(\"Unable to execute a shell command\", ioe);\r\n    }\r\n    conf = new Configuration();\r\n    testBaseDir = new File(System.getProperty(PROP_TEST_BUILD_DATA, \"build/test/data\"));\r\n    String hadoopBinVersion = System.getProperty(HADOOP_BIN_VERSION_KEY, HADOOP_BIN_VERSION_DEFAULT);\r\n    if (System.getProperty(HADOOP_BIN_PATH_KEY) == null) {\r\n        hadoopTarballPath = fetchHadoopTarball(testBaseDir, hadoopBinVersion, conf, LOG);\r\n    } else {\r\n        hadoopTarballPath = new File(System.getProperty(HADOOP_BIN_PATH_KEY));\r\n    }\r\n    if (testBaseDir.exists()) {\r\n        File[] oldUnpackedDirs = testBaseDir.listFiles((dir, name) -> name.startsWith(HADOOP_BIN_UNPACKED_DIR_PREFIX));\r\n        if (oldUnpackedDirs != null) {\r\n            for (File oldDir : oldUnpackedDirs) {\r\n                FileUtils.deleteQuietly(oldDir);\r\n            }\r\n        }\r\n    }\r\n    hadoopUnpackedDir = new File(testBaseDir, HADOOP_BIN_UNPACKED_DIR_PREFIX + UUID.randomUUID());\r\n    assertTrue(\"Failed to make temporary directory\", hadoopUnpackedDir.mkdirs());\r\n    Shell.ShellCommandExecutor shexec = new Shell.ShellCommandExecutor(new String[] { \"tar\", \"xzf\", hadoopTarballPath.getAbsolutePath(), \"-C\", hadoopUnpackedDir.getAbsolutePath() });\r\n    shexec.execute();\r\n    if (shexec.getExitCode() != 0) {\r\n        fail(\"Unable to execute tar to expand Hadoop binary\");\r\n    }\r\n    conf.setInt(YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB, 128);\r\n    conf.setBoolean(YarnConfiguration.NODE_LABELS_ENABLED, true);\r\n    for (String q : new String[] { \"root\", \"root.default\" }) {\r\n        conf.setInt(CapacitySchedulerConfiguration.PREFIX + q + \".\" + CapacitySchedulerConfiguration.CAPACITY, 100);\r\n        String accessibleNodeLabelPrefix = CapacitySchedulerConfiguration.PREFIX + q + \".\" + CapacitySchedulerConfiguration.ACCESSIBLE_NODE_LABELS;\r\n        conf.set(accessibleNodeLabelPrefix, CapacitySchedulerConfiguration.ALL_ACL);\r\n        conf.setInt(accessibleNodeLabelPrefix + \".\" + DATANODE_NODELABEL + \".\" + CapacitySchedulerConfiguration.CAPACITY, 100);\r\n        conf.setInt(accessibleNodeLabelPrefix + \".\" + NAMENODE_NODELABEL + \".\" + CapacitySchedulerConfiguration.CAPACITY, 100);\r\n    }\r\n    conf.setClass(CapacitySchedulerConfiguration.RESOURCE_CALCULATOR_CLASS, DominantResourceCalculator.class, ResourceCalculator.class);\r\n    conf.setBoolean(YarnConfiguration.NM_DISK_HEALTH_CHECK_ENABLE, false);\r\n    miniYARNCluster = new MiniYARNCluster(TestDynamometerInfra.class.getName(), 1, MINICLUSTER_NUM_NMS, 1, 1);\r\n    miniYARNCluster.init(conf);\r\n    miniYARNCluster.start();\r\n    yarnConf = miniYARNCluster.getConfig();\r\n    miniDFSCluster = new MiniDFSCluster.Builder(conf).format(true).numDataNodes(MINICLUSTER_NUM_DNS).build();\r\n    miniDFSCluster.waitClusterUp();\r\n    FileSystem.setDefaultUri(conf, miniDFSCluster.getURI());\r\n    FileSystem.setDefaultUri(yarnConf, miniDFSCluster.getURI());\r\n    fs = miniDFSCluster.getFileSystem();\r\n    URL url = Thread.currentThread().getContextClassLoader().getResource(\"yarn-site.xml\");\r\n    if (url == null) {\r\n        throw new RuntimeException(\"Could not find 'yarn-site.xml' dummy file in classpath\");\r\n    }\r\n    yarnConf.set(YarnConfiguration.YARN_APPLICATION_CLASSPATH, new File(url.getPath()).getParent());\r\n    try (ByteArrayOutputStream bytesOut = new ByteArrayOutputStream()) {\r\n        yarnConf.writeXml(bytesOut);\r\n        try (OutputStream fileOut = new FileOutputStream(new File(url.getPath()))) {\r\n            fileOut.write(bytesOut.toByteArray());\r\n        }\r\n    }\r\n    yarnClient = YarnClient.createYarnClient();\r\n    yarnClient.init(new Configuration(yarnConf));\r\n    yarnClient.start();\r\n    fsImageTmpPath = fs.makeQualified(new Path(\"/tmp/\" + FSIMAGE_FILENAME));\r\n    fsVersionTmpPath = fs.makeQualified(new Path(\"/tmp/\" + VERSION_FILENAME));\r\n    blockImageOutputDir = fs.makeQualified(new Path(\"/tmp/blocks\"));\r\n    auditTraceDir = fs.makeQualified(new Path(\"/tmp/audit_trace_direct\"));\r\n    confZip = fs.makeQualified(new Path(\"/tmp/conf.zip\"));\r\n    uploadFsimageResourcesToHDFS(hadoopBinVersion);\r\n    miniYARNCluster.waitForNodeManagersToConnect(30000);\r\n    RMNodeLabelsManager nodeLabelManager = miniYARNCluster.getResourceManager().getRMContext().getNodeLabelManager();\r\n    nodeLabelManager.addToCluserNodeLabelsWithDefaultExclusivity(Sets.newHashSet(NAMENODE_NODELABEL, DATANODE_NODELABEL));\r\n    Map<NodeId, Set<String>> nodeLabels = new HashMap<>();\r\n    nodeLabels.put(miniYARNCluster.getNodeManager(0).getNMContext().getNodeId(), Sets.newHashSet(NAMENODE_NODELABEL));\r\n    nodeLabels.put(miniYARNCluster.getNodeManager(1).getNMContext().getNodeId(), Sets.newHashSet(DATANODE_NODELABEL));\r\n    nodeLabelManager.addLabelsToNode(nodeLabels);\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 3,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-infra\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer",
+  "methodName" : "teardownClass",
+  "errType" : null,
+  "containingMethodsNum" : 8,
+  "sourceCodeText" : "void teardownClass() throws Exception\n{\r\n    if (miniDFSCluster != null) {\r\n        miniDFSCluster.shutdown(true);\r\n        miniDFSCluster = null;\r\n    }\r\n    if (yarnClient != null) {\r\n        yarnClient.stop();\r\n        yarnClient = null;\r\n    }\r\n    if (miniYARNCluster != null) {\r\n        miniYARNCluster.getResourceManager().stop();\r\n        miniYARNCluster.getResourceManager().waitForServiceToStop(30000);\r\n        miniYARNCluster.stop();\r\n        miniYARNCluster.waitForServiceToStop(30000);\r\n        FileUtils.deleteDirectory(miniYARNCluster.getTestWorkDir());\r\n        miniYARNCluster = null;\r\n    }\r\n    if (hadoopUnpackedDir != null) {\r\n        FileUtils.deleteDirectory(hadoopUnpackedDir);\r\n    }\r\n}\n",
+  "settingFlag" : true,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-infra\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer",
+  "methodName" : "tearDown",
+  "errType" : null,
+  "containingMethodsNum" : 1,
+  "sourceCodeText" : "void tearDown() throws Exception\n{\r\n    if (infraAppId != null && yarnClient != null) {\r\n        yarnClient.killApplication(infraAppId);\r\n    }\r\n    infraAppId = null;\r\n}\n",
+  "settingFlag" : true,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-infra\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer",
+  "methodName" : "testNameNodeInYARN",
+  "errType" : [ "IOException|YarnException", "IOException|IllegalStateException", "IOException|YarnException", "IOException" ],
+  "containingMethodsNum" : 34,
+  "sourceCodeText" : "void testNameNodeInYARN() throws Exception\n{\r\n    Configuration localConf = new Configuration(yarnConf);\r\n    localConf.setLong(AuditLogDirectParser.AUDIT_START_TIMESTAMP_KEY, 60000);\r\n    final Client client = createAndStartClient(localConf);\r\n    awaitApplicationStartup();\r\n    long startTime = System.currentTimeMillis();\r\n    long maxWaitTimeMs = TimeUnit.MINUTES.toMillis(10);\r\n    Supplier<Boolean> exitCheckSupplier = () -> {\r\n        if (System.currentTimeMillis() - startTime > maxWaitTimeMs) {\r\n            return true;\r\n        }\r\n        try {\r\n            return yarnClient.getApplicationReport(infraAppId).getYarnApplicationState() == YarnApplicationState.FAILED;\r\n        } catch (IOException | YarnException e) {\r\n            return true;\r\n        }\r\n    };\r\n    Optional<Properties> namenodeProperties = DynoInfraUtils.waitForAndGetNameNodeProperties(exitCheckSupplier, localConf, client.getNameNodeInfoPath(), LOG);\r\n    if (!namenodeProperties.isPresent()) {\r\n        fail(\"Unable to fetch NameNode properties\");\r\n    }\r\n    DynoInfraUtils.waitForNameNodeReadiness(namenodeProperties.get(), 3, false, exitCheckSupplier, localConf, LOG);\r\n    assertClusterIsFunctional(localConf, namenodeProperties.get());\r\n    Map<ContainerId, Container> namenodeContainers = miniYARNCluster.getNodeManager(0).getNMContext().getContainers();\r\n    Map<ContainerId, Container> datanodeContainers = miniYARNCluster.getNodeManager(1).getNMContext().getContainers();\r\n    Map<ContainerId, Container> amContainers = miniYARNCluster.getNodeManager(2).getNMContext().getContainers();\r\n    assertEquals(1, namenodeContainers.size());\r\n    assertEquals(2, namenodeContainers.keySet().iterator().next().getContainerId());\r\n    assertEquals(2, datanodeContainers.size());\r\n    assertEquals(1, amContainers.size());\r\n    assertEquals(1, amContainers.keySet().iterator().next().getContainerId());\r\n    LOG.info(\"Waiting for workload job to start and complete\");\r\n    GenericTestUtils.waitFor(() -> {\r\n        try {\r\n            return client.getWorkloadJob() != null && client.getWorkloadJob().isComplete();\r\n        } catch (IOException | IllegalStateException e) {\r\n            return false;\r\n        }\r\n    }, 3000, 60000);\r\n    LOG.info(\"Workload job completed\");\r\n    if (!client.getWorkloadJob().isSuccessful()) {\r\n        fail(\"Workload job failed\");\r\n    }\r\n    Counters counters = client.getWorkloadJob().getCounters();\r\n    assertEquals(6, counters.findCounter(AuditReplayMapper.REPLAYCOUNTERS.TOTALCOMMANDS).getValue());\r\n    assertEquals(1, counters.findCounter(AuditReplayMapper.REPLAYCOUNTERS.TOTALINVALIDCOMMANDS).getValue());\r\n    LOG.info(\"Waiting for infra application to exit\");\r\n    GenericTestUtils.waitFor(() -> {\r\n        try {\r\n            ApplicationReport report = yarnClient.getApplicationReport(infraAppId);\r\n            return report.getYarnApplicationState() == YarnApplicationState.KILLED;\r\n        } catch (IOException | YarnException e) {\r\n            return false;\r\n        }\r\n    }, 3000, 300000);\r\n    LOG.info(\"Waiting for metrics file to be ready\");\r\n    Path hdfsStoragePath = new Path(fs.getHomeDirectory(), DynoConstants.DYNAMOMETER_STORAGE_DIR + \"/\" + infraAppId);\r\n    final Path metricsPath = new Path(hdfsStoragePath, \"namenode_metrics\");\r\n    GenericTestUtils.waitFor(() -> {\r\n        try {\r\n            FSDataInputStream in = fs.open(metricsPath);\r\n            String metricsOutput = in.readUTF();\r\n            in.close();\r\n            assertTrue(metricsOutput.contains(\"JvmMetrics\"));\r\n            return true;\r\n        } catch (IOException ioe) {\r\n            return false;\r\n        }\r\n    }, 3000, 60000);\r\n    assertTrue(fs.exists(new Path(OUTPUT_PATH)));\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : true,
+  "tryCatchBlockNum" : 4,
+  "logged" : true
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-infra\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer",
+  "methodName" : "assertClusterIsFunctional",
+  "errType" : [ "IOException" ],
+  "containingMethodsNum" : 11,
+  "sourceCodeText" : "void assertClusterIsFunctional(Configuration localConf, Properties namenodeProperties) throws IOException\n{\r\n    try {\r\n        URI nameNodeUri = DynoInfraUtils.getNameNodeHdfsUri(namenodeProperties);\r\n        DistributedFileSystem dynoFS = (DistributedFileSystem) FileSystem.get(nameNodeUri, localConf);\r\n        Path testFile = new Path(\"/tmp/test/foo\");\r\n        dynoFS.mkdir(testFile.getParent(), FsPermission.getDefault());\r\n        FSDataOutputStream out = dynoFS.create(testFile, (short) 1);\r\n        out.write(42);\r\n        out.hsync();\r\n        out.close();\r\n        FileStatus[] stats = dynoFS.listStatus(testFile.getParent());\r\n        assertEquals(1, stats.length);\r\n        assertEquals(\"foo\", stats[0].getPath().getName());\r\n    } catch (IOException e) {\r\n        LOG.error(\"Failed to write or read\", e);\r\n        throw e;\r\n    }\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 1,
+  "logged" : true
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-infra\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer",
+  "methodName" : "awaitApplicationStartup",
+  "errType" : [ "IOException|YarnException" ],
+  "containingMethodsNum" : 2,
+  "sourceCodeText" : "void awaitApplicationStartup() throws TimeoutException, InterruptedException\n{\r\n    LOG.info(\"Waiting for application ID to become available\");\r\n    GenericTestUtils.waitFor(() -> {\r\n        try {\r\n            List<ApplicationReport> apps = yarnClient.getApplications();\r\n            if (apps.size() == 1) {\r\n                infraAppId = apps.get(0).getApplicationId();\r\n                return true;\r\n            } else if (apps.size() > 1) {\r\n                fail(\"Unexpected: more than one application\");\r\n            }\r\n        } catch (IOException | YarnException e) {\r\n            fail(\"Unexpected exception: \" + e);\r\n        }\r\n        return false;\r\n    }, 1000, 60000);\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 1,
+  "logged" : true
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-infra\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer",
+  "methodName" : "createAndStartClient",
+  "errType" : [ "Exception" ],
+  "containingMethodsNum" : 6,
+  "sourceCodeText" : "Client createAndStartClient(Configuration localConf)\n{\r\n    final Client client = new Client(JarFinder.getJar(ApplicationMaster.class), JarFinder.getJar(Assert.class));\r\n    client.setConf(localConf);\r\n    Thread appThread = new Thread(() -> {\r\n        try {\r\n            client.run(new String[] { \"-\" + Client.MASTER_MEMORY_MB_ARG, \"128\", \"-\" + Client.CONF_PATH_ARG, confZip.toString(), \"-\" + Client.BLOCK_LIST_PATH_ARG, blockImageOutputDir.toString(), \"-\" + Client.FS_IMAGE_DIR_ARG, fsImageTmpPath.getParent().toString(), \"-\" + Client.HADOOP_BINARY_PATH_ARG, hadoopTarballPath.getAbsolutePath(), \"-\" + AMOptions.DATANODES_PER_CLUSTER_ARG, \"2\", \"-\" + AMOptions.DATANODE_MEMORY_MB_ARG, \"128\", \"-\" + AMOptions.DATANODE_NODELABEL_ARG, DATANODE_NODELABEL, \"-\" + AMOptions.NAMENODE_MEMORY_MB_ARG, \"256\", \"-\" + AMOptions.NAMENODE_METRICS_PERIOD_ARG, \"1\", \"-\" + AMOptions.NAMENODE_NODELABEL_ARG, NAMENODE_NODELABEL, \"-\" + AMOptions.SHELL_ENV_ARG, \"HADOOP_HOME=\" + getHadoopHomeLocation(), \"-\" + AMOptions.SHELL_ENV_ARG, \"HADOOP_CONF_DIR=\" + getHadoopHomeLocation() + \"/etc/hadoop\", \"-\" + Client.WORKLOAD_REPLAY_ENABLE_ARG, \"-\" + Client.WORKLOAD_INPUT_PATH_ARG, fs.makeQualified(new Path(\"/tmp/audit_trace_direct\")).toString(), \"-\" + Client.WORKLOAD_OUTPUT_PATH_ARG, fs.makeQualified(new Path(OUTPUT_PATH)).toString(), \"-\" + Client.WORKLOAD_THREADS_PER_MAPPER_ARG, \"1\", \"-\" + Client.WORKLOAD_START_DELAY_ARG, \"10s\", \"-\" + AMOptions.NAMENODE_ARGS_ARG, \"-Ddfs.namenode.safemode.extension=0\" });\r\n        } catch (Exception e) {\r\n            LOG.error(\"Error running client\", e);\r\n        }\r\n    });\r\n    appThread.start();\r\n    return client;\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : false,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 1,
+  "logged" : true
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-infra\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer",
+  "methodName" : "getResourcePath",
+  "errType" : [ "URISyntaxException" ],
+  "containingMethodsNum" : 1,
+  "sourceCodeText" : "URI getResourcePath(String resourceName)\n{\r\n    try {\r\n        return TestDynamometerInfra.class.getClassLoader().getResource(resourceName).toURI();\r\n    } catch (URISyntaxException e) {\r\n        return null;\r\n    }\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : false,
+  "returnSpecialValue" : true,
+  "tryCatchBlockNum" : 1,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-infra\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer",
+  "methodName" : "getHadoopHomeLocation",
+  "errType" : null,
+  "containingMethodsNum" : 3,
+  "sourceCodeText" : "String getHadoopHomeLocation()\n{\r\n    File[] files = hadoopUnpackedDir.listFiles();\r\n    if (files == null || files.length != 1) {\r\n        fail(\"Should be 1 directory within the Hadoop unpacked dir\");\r\n    }\r\n    return files[0].getAbsolutePath();\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : false,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-infra\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer",
+  "methodName" : "uploadFsimageResourcesToHDFS",
+  "errType" : null,
+  "containingMethodsNum" : 17,
+  "sourceCodeText" : "void uploadFsimageResourcesToHDFS(String hadoopBinVersion) throws IOException\n{\r\n    String[] versionComponents = hadoopBinVersion.split(\"\\\\.\");\r\n    if (versionComponents.length < 2) {\r\n        fail(\"At least major and minor version are required to be specified; got: \" + hadoopBinVersion);\r\n    }\r\n    String hadoopResourcesPath = \"hadoop_\" + versionComponents[0] + \"_\" + versionComponents[1];\r\n    String fsImageResourcePath = hadoopResourcesPath + \"/\" + FSIMAGE_FILENAME;\r\n    fs.copyFromLocalFile(new Path(getResourcePath(fsImageResourcePath)), fsImageTmpPath);\r\n    fs.copyFromLocalFile(new Path(getResourcePath(fsImageResourcePath + \".md5\")), fsImageTmpPath.suffix(\".md5\"));\r\n    fs.copyFromLocalFile(new Path(getResourcePath(hadoopResourcesPath + \"/\" + VERSION_FILENAME)), fsVersionTmpPath);\r\n    fs.mkdirs(auditTraceDir);\r\n    IOUtils.copyBytes(TestDynamometerInfra.class.getClassLoader().getResourceAsStream(\"audit_trace_direct/audit0\"), fs.create(new Path(auditTraceDir, \"audit0\")), conf, true);\r\n    fs.mkdirs(blockImageOutputDir);\r\n    for (String blockFile : new String[] { \"dn0-a-0-r-00000\", \"dn1-a-0-r-00001\", \"dn2-a-0-r-00002\" }) {\r\n        IOUtils.copyBytes(TestDynamometerInfra.class.getClassLoader().getResourceAsStream(\"blocks/\" + blockFile), fs.create(new Path(blockImageOutputDir, blockFile)), conf, true);\r\n    }\r\n    File tempConfZip = new File(testBaseDir, \"conf.zip\");\r\n    ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(tempConfZip));\r\n    for (String file : new String[] { \"core-site.xml\", \"hdfs-site.xml\", \"log4j.properties\" }) {\r\n        zos.putNextEntry(new ZipEntry(\"etc/hadoop/\" + file));\r\n        InputStream is = TestDynamometerInfra.class.getClassLoader().getResourceAsStream(\"conf/etc/hadoop/\" + file);\r\n        IOUtils.copyBytes(is, zos, conf, false);\r\n        is.close();\r\n        zos.closeEntry();\r\n    }\r\n    zos.close();\r\n    fs.copyFromLocalFile(new Path(tempConfZip.toURI()), confZip);\r\n    tempConfZip.delete();\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+} ]

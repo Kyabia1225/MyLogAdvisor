@@ -1,0 +1,56 @@
+[ {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-kafka\\src\\main\\java\\org\\apache\\hadoop\\metrics2\\sink",
+  "methodName" : "setProducer",
+  "errType" : null,
+  "containingMethodsNum" : 0,
+  "sourceCodeText" : "void setProducer(Producer<Integer, byte[]> p)\n{\r\n    this.producer = p;\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : false,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-kafka\\src\\main\\java\\org\\apache\\hadoop\\metrics2\\sink",
+  "methodName" : "init",
+  "errType" : [ "Exception", "Exception" ],
+  "containingMethodsNum" : 15,
+  "sourceCodeText" : "void init(SubsetConfiguration conf)\n{\r\n    Properties props = new Properties();\r\n    brokerList = conf.getString(BROKER_LIST);\r\n    if (LOG.isDebugEnabled()) {\r\n        LOG.debug(\"Broker list \" + brokerList);\r\n    }\r\n    props.put(\"bootstrap.servers\", brokerList);\r\n    if (LOG.isDebugEnabled()) {\r\n        LOG.debug(\"Kafka brokers: \" + brokerList);\r\n    }\r\n    topic = conf.getString(TOPIC);\r\n    if (LOG.isDebugEnabled()) {\r\n        LOG.debug(\"Kafka topic \" + topic);\r\n    }\r\n    if (Strings.isNullOrEmpty(topic)) {\r\n        throw new MetricsException(\"Kafka topic can not be null\");\r\n    }\r\n    props.put(\"key.serializer\", \"org.apache.kafka.common.serialization.ByteArraySerializer\");\r\n    props.put(\"value.serializer\", \"org.apache.kafka.common.serialization.ByteArraySerializer\");\r\n    props.put(\"request.required.acks\", \"0\");\r\n    hostname = \"null\";\r\n    try {\r\n        hostname = InetAddress.getLocalHost().getHostName();\r\n    } catch (Exception e) {\r\n        LOG.warn(\"Error getting Hostname, going to continue\");\r\n    }\r\n    try {\r\n        producer = new KafkaProducer<Integer, byte[]>(props);\r\n    } catch (Exception e) {\r\n        throw new MetricsException(\"Error creating Producer, \" + brokerList, e);\r\n    }\r\n}\n",
+  "settingFlag" : true,
+  "hasThrow" : false,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 2,
+  "logged" : true
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-kafka\\src\\main\\java\\org\\apache\\hadoop\\metrics2\\sink",
+  "methodName" : "putMetrics",
+  "errType" : [ "InterruptedException", "ExecutionException" ],
+  "containingMethodsNum" : 22,
+  "sourceCodeText" : "void putMetrics(MetricsRecord record)\n{\r\n    if (producer == null) {\r\n        throw new MetricsException(\"Producer in KafkaSink is null!\");\r\n    }\r\n    StringBuilder jsonLines = new StringBuilder();\r\n    long timestamp = record.timestamp();\r\n    Instant instant = Instant.ofEpochMilli(timestamp);\r\n    LocalDateTime ldt = LocalDateTime.ofInstant(instant, zoneId);\r\n    String date = ldt.format(dateFormat);\r\n    String time = ldt.format(timeFormat);\r\n    jsonLines.append(\"{\\\"hostname\\\": \\\"\" + hostname);\r\n    jsonLines.append(\"\\\", \\\"timestamp\\\": \" + timestamp);\r\n    jsonLines.append(\", \\\"date\\\": \\\"\" + date);\r\n    jsonLines.append(\"\\\",\\\"time\\\": \\\"\" + time);\r\n    jsonLines.append(\"\\\",\\\"name\\\": \\\"\" + record.name() + \"\\\" \");\r\n    for (MetricsTag tag : record.tags()) {\r\n        jsonLines.append(\", \\\"\" + tag.name().toString().replaceAll(\"[\\\\p{Cc}]\", \"\") + \"\\\": \");\r\n        jsonLines.append(\" \\\"\" + tag.value().toString() + \"\\\"\");\r\n    }\r\n    for (AbstractMetric metric : record.metrics()) {\r\n        jsonLines.append(\", \\\"\" + metric.name().toString().replaceAll(\"[\\\\p{Cc}]\", \"\") + \"\\\": \");\r\n        jsonLines.append(\" \\\"\" + metric.value().toString() + \"\\\"\");\r\n    }\r\n    jsonLines.append(\"}\");\r\n    LOG.debug(\"kafka message: \" + jsonLines.toString());\r\n    ProducerRecord<Integer, byte[]> data = new ProducerRecord<Integer, byte[]>(topic, jsonLines.toString().getBytes(Charset.forName(\"UTF-8\")));\r\n    Future<RecordMetadata> future = producer.send(data);\r\n    jsonLines.setLength(0);\r\n    try {\r\n        future.get();\r\n    } catch (InterruptedException e) {\r\n        throw new MetricsException(\"Error sending data\", e);\r\n    } catch (ExecutionException e) {\r\n        throw new MetricsException(\"Error sending data\", e);\r\n    }\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : false,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 1,
+  "logged" : true
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-kafka\\src\\main\\java\\org\\apache\\hadoop\\metrics2\\sink",
+  "methodName" : "flush",
+  "errType" : null,
+  "containingMethodsNum" : 1,
+  "sourceCodeText" : "void flush()\n{\r\n    LOG.debug(\"Kafka seems not to have any flush() mechanism!\");\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : false,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : true
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-kafka\\src\\main\\java\\org\\apache\\hadoop\\metrics2\\sink",
+  "methodName" : "close",
+  "errType" : [ "RuntimeException" ],
+  "containingMethodsNum" : 1,
+  "sourceCodeText" : "void close() throws IOException\n{\r\n    try {\r\n        producer.close();\r\n    } catch (RuntimeException e) {\r\n        throw new MetricsException(\"Error closing producer\", e);\r\n    } finally {\r\n        producer = null;\r\n    }\r\n}\n",
+  "settingFlag" : true,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 1,
+  "logged" : false
+} ]

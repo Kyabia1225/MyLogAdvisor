@@ -1,0 +1,23 @@
+[ {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-mapreduce-project\\hadoop-mapreduce-client\\hadoop-mapreduce-client-hs-plugins\\src\\test\\java\\org\\apache\\hadoop\\mapreduce\\v2\\hs\\webapp",
+  "methodName" : "testProducesHistoryServerUriForAppId",
+  "errType" : null,
+  "containingMethodsNum" : 7,
+  "sourceCodeText" : "void testProducesHistoryServerUriForAppId() throws URISyntaxException\n{\r\n    final String historyAddress = \"example.net:424242\";\r\n    YarnConfiguration conf = new YarnConfiguration();\r\n    conf.set(JHAdminConfig.MR_HS_HTTP_POLICY, HttpConfig.Policy.HTTP_ONLY.name());\r\n    conf.set(JHAdminConfig.MR_HISTORY_WEBAPP_ADDRESS, historyAddress);\r\n    MapReduceTrackingUriPlugin plugin = new MapReduceTrackingUriPlugin();\r\n    plugin.setConf(conf);\r\n    ApplicationId id = ApplicationId.newInstance(6384623L, 5);\r\n    String jobSuffix = id.toString().replaceFirst(\"^application_\", \"job_\");\r\n    URI expected = new URI(\"http://\" + historyAddress + \"/jobhistory/job/\" + jobSuffix);\r\n    URI actual = plugin.getTrackingUri(id);\r\n    assertEquals(expected, actual);\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-mapreduce-project\\hadoop-mapreduce-client\\hadoop-mapreduce-client-hs-plugins\\src\\test\\java\\org\\apache\\hadoop\\mapreduce\\v2\\hs\\webapp",
+  "methodName" : "testProducesHistoryServerUriWithHTTPS",
+  "errType" : null,
+  "containingMethodsNum" : 7,
+  "sourceCodeText" : "void testProducesHistoryServerUriWithHTTPS() throws URISyntaxException\n{\r\n    final String historyAddress = \"example.net:404040\";\r\n    YarnConfiguration conf = new YarnConfiguration();\r\n    conf.set(JHAdminConfig.MR_HS_HTTP_POLICY, HttpConfig.Policy.HTTPS_ONLY.name());\r\n    conf.set(JHAdminConfig.MR_HISTORY_WEBAPP_HTTPS_ADDRESS, historyAddress);\r\n    MapReduceTrackingUriPlugin plugin = new MapReduceTrackingUriPlugin();\r\n    plugin.setConf(conf);\r\n    ApplicationId id = ApplicationId.newInstance(6384623L, 5);\r\n    String jobSuffix = id.toString().replaceFirst(\"^application_\", \"job_\");\r\n    URI expected = new URI(\"https://\" + historyAddress + \"/jobhistory/job/\" + jobSuffix);\r\n    URI actual = plugin.getTrackingUri(id);\r\n    assertEquals(expected, actual);\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+} ]

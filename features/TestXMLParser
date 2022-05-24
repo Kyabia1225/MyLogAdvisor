@@ -1,0 +1,56 @@
+[ {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-blockgen\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer\\blockgenerator",
+  "methodName" : "testBlocksFromLine",
+  "errType" : null,
+  "containingMethodsNum" : 7,
+  "sourceCodeText" : "void testBlocksFromLine() throws Exception\n{\r\n    String[] lines = { \"<INodeSection><lastInodeId>1\" + \"</lastInodeId><inode><id>2</id><type>FILE</type>\" + \"<name>fake-file</name>\" + \"<replication>3</replication><mtime>3</mtime>\" + \"<atime>4</atime>\" + \"<perferredBlockSize>5</perferredBlockSize>\" + \"<permission>hdfs:hdfs:rw-------</permission>\" + \"<blocks><block><id>6</id><genstamp>7</genstamp>\" + \"<numBytes>8</numBytes></block>\" + \"<block><id>9</id><genstamp>10</genstamp>\" + \"<numBytes>11</numBytes></block></inode>\", \"<inode><type>DIRECTORY</type></inode>\", \"<inode><type>FILE</type>\", \"<replication>12</replication>\", \"<blocks><block><id>13</id><genstamp>14</genstamp>\" + \"<numBytes>15</numBytes></block>\", \"</inode>\", \"</INodeSection>\" };\r\n    short replCount = 0;\r\n    Map<BlockInfo, Short> expectedBlockCount = new HashMap<>();\r\n    expectedBlockCount.put(new BlockInfo(6, 7, 8, replCount), (short) 3);\r\n    expectedBlockCount.put(new BlockInfo(9, 10, 11, replCount), (short) 3);\r\n    expectedBlockCount.put(new BlockInfo(13, 14, 15, replCount), (short) 12);\r\n    final Map<BlockInfo, Short> actualBlockCount = new HashMap<>();\r\n    XMLParser parser = new XMLParser();\r\n    for (String line : lines) {\r\n        for (BlockInfo info : parser.parseLine(line)) {\r\n            actualBlockCount.put(info, info.getReplication());\r\n        }\r\n    }\r\n    for (Map.Entry<BlockInfo, Short> expect : expectedBlockCount.entrySet()) {\r\n        assertEquals(expect.getValue(), actualBlockCount.get(expect.getKey()));\r\n    }\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-blockgen\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer\\blockgenerator",
+  "methodName" : "testNonInodeSectionIgnored",
+  "errType" : null,
+  "containingMethodsNum" : 1,
+  "sourceCodeText" : "void testNonInodeSectionIgnored() throws Exception\n{\r\n    String[] lines = { \"<INodeSection>\", \"</INodeSection>\", \"<OtherSection>\", \"<inode><id>1</id><type>FILE</type><name>fake-file</name>\" + \"<replication>1</replication>\", \"<blocks><block><id>2</id><genstamp>1</genstamp>\" + \"<numBytes>1</numBytes></block>\", \"</inode>\", \"<replication>3</replication>\", \"</OtherSection>\" };\r\n    XMLParser parser = new XMLParser();\r\n    for (String line : lines) {\r\n        assertTrue((parser.parseLine(line).isEmpty()));\r\n    }\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-blockgen\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer\\blockgenerator",
+  "methodName" : "setup",
+  "errType" : null,
+  "containingMethodsNum" : 9,
+  "sourceCodeText" : "void setup() throws Exception\n{\r\n    Configuration conf = new Configuration();\r\n    dfsCluster = new MiniDFSCluster.Builder(conf).build();\r\n    dfsCluster.waitActive();\r\n    LOG.info(\"Started MiniDFSCluster\");\r\n    fs = dfsCluster.getFileSystem();\r\n    FileSystem.setDefaultUri(conf, fs.getUri());\r\n    tmpPath = fs.makeQualified(new Path(\"/tmp\"));\r\n    fs.mkdirs(tmpPath);\r\n    String fsImageFile = this.getClass().getClassLoader().getResource(FS_IMAGE_NAME).getPath();\r\n    fs.copyFromLocalFile(new Path(fsImageFile), new Path(tmpPath, FS_IMAGE_NAME));\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : true
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-blockgen\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer\\blockgenerator",
+  "methodName" : "cleanUp",
+  "errType" : null,
+  "containingMethodsNum" : 1,
+  "sourceCodeText" : "void cleanUp()\n{\r\n    dfsCluster.shutdown();\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : false,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : false
+}, {
+  "directory" : "E:\\MyPaper\\hadoop\\hadoop-tools\\hadoop-dynamometer\\hadoop-dynamometer-blockgen\\src\\test\\java\\org\\apache\\hadoop\\tools\\dynamometer\\blockgenerator",
+  "methodName" : "testBlockGen",
+  "errType" : null,
+  "containingMethodsNum" : 3,
+  "sourceCodeText" : "void testBlockGen() throws Exception\n{\r\n    LOG.info(\"Started test\");\r\n    int datanodeCount = 40;\r\n    GenerateBlockImagesDriver driver = new GenerateBlockImagesDriver(new Configuration());\r\n    driver.run(new String[] { \"-\" + GenerateBlockImagesDriver.FSIMAGE_INPUT_PATH_ARG, new Path(tmpPath, FS_IMAGE_NAME).toString(), \"-\" + GenerateBlockImagesDriver.BLOCK_IMAGE_OUTPUT_ARG, new Path(tmpPath, BLOCK_LIST_OUTPUT_DIR_NAME).toString(), \"-\" + GenerateBlockImagesDriver.NUM_DATANODES_ARG, String.valueOf(datanodeCount) });\r\n    for (int i = 0; i < datanodeCount; i++) {\r\n        final int idx = i;\r\n        assertEquals(1, fs.listStatus(new Path(tmpPath, BLOCK_LIST_OUTPUT_DIR_NAME), (path) -> path.getName().startsWith(String.format(\"dn%d-\", idx))).length);\r\n    }\r\n}\n",
+  "settingFlag" : false,
+  "hasThrow" : true,
+  "returnSpecialValue" : false,
+  "tryCatchBlockNum" : 0,
+  "logged" : true
+} ]
