@@ -1,16 +1,15 @@
 package Proc;
 
-import java.util.List;
 
 public class PredictResult {
     private String methodName;
     private String fileName;
-    private float probability;
+    private Float probability;
 
     public PredictResult() {
     }
 
-    public PredictResult(String methodName, String fileName, float probability) {
+    public PredictResult(String methodName, String fileName, Float probability) {
         this.methodName = methodName;
         this.fileName = fileName;
         this.probability = probability;
@@ -32,17 +31,11 @@ public class PredictResult {
         this.fileName = fileName;
     }
 
-    public float getProbability() {
+    public Float getProbability() {
         return probability;
     }
 
-    public void setProbability(float probability) {
+    public void setProbability(Float probability) {
         this.probability = probability;
-    }
-
-    public static void main(String[] args) {
-        Predict predict = new Predict();
-        List<PredictResult> resultList = predict.predict("E:\\MyPaper\\venv\\Scripts\\python.exe", "D:\\tmp_feature\\");
-        //System.out.println(resultList);
     }
 }

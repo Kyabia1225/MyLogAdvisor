@@ -1,6 +1,5 @@
 package FeatureExtraction;
 
-import com.github.javaparser.ast.body.MethodDeclaration;
 
 import java.util.ArrayList;
 import java.util.List;

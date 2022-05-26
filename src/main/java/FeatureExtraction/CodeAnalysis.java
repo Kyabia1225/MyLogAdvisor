@@ -47,7 +47,8 @@ public class CodeAnalysis {
             BufferedWriter out = new BufferedWriter(new FileWriter(file, true));
             out.write(json);
             out.close();
-            logger.info("output to " + storagePath + " successfully\n");
+            //logger.info("output to " + storagePath + " successfully\n");
+            logger.info("parse " + fileName + " successfully\n");
         } catch (IOException e) {
             e.printStackTrace();
             return false;
@@ -70,7 +71,7 @@ public class CodeAnalysis {
             if (!compilationUnits.isEmpty()) {
                 for (CompilationUnit compilationUnit : compilationUnits) {
                     List<Feature> features = parseCompilationUnit(compilationUnit);
-                    outputToFile(features, storagePath, compilationUnit.getStorage().get().getFileName().split("\\.")[0] + ".json");
+                    outputToFile(features, storagePath, compilationUnit.getStorage().get().getFileName().split("\\.")[0]);
                     features.clear();
                 }
             }
