@@ -1,7 +1,10 @@
 package FeatureExtraction;
-import java.io.File;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
@@ -18,9 +21,6 @@ import com.github.javaparser.utils.ParserCollectionStrategy;
 import com.github.javaparser.utils.ProjectRoot;
 import com.github.javaparser.utils.SourceRoot;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -30,6 +30,10 @@ public class CodeAnalysis {
 
     public CodeAnalysis(String path) {
         this.path = path;
+    }
+
+    public CodeAnalysis() {
+        this.path = null;
     }
 
     public boolean outputToFile(List<Feature> features, String storagePath, String fileName) {
@@ -44,7 +48,7 @@ public class CodeAnalysis {
         ObjectMapper mapper = new ObjectMapper();
         try{
             String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(features);
-            BufferedWriter out = new BufferedWriter(new FileWriter(file, true));
+            BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
             out.write(json);
             out.close();
             //logger.info("output to " + storagePath + " successfully\n");
@@ -56,7 +60,27 @@ public class CodeAnalysis {
         return true;
     }
 
+    public void getFeature(String storagePath) {
+        logger.info("Start parsing current page.\n");
+        JavaParser parser = new JavaParser();
+        ParseResult<CompilationUnit> parseResult = null;
+        try {
+            parseResult = parser.parse(new File(path));
+        } catch (FileNotFoundException e){
+            e.printStackTrace();
+        }
+        if(parseResult == null || !parseResult.isSuccessful()) {
+            logger.info("Parse failure");
+            return;
+        }
+        if(parseResult.getResult().isPresent()) {
+            CompilationUnit compilationUnit = parseResult.getResult().get();
+            List<Feature> features = parseCompilationUnit(compilationUnit);
+            outputToFile(features, storagePath, compilationUnit.getStorage().get().getFileName().split("\\.")[0]);
+            logger.info("Parsing completed.\n");
+        }
 
+    }
     public void getFeatures(String storagePath) {
         logger.info("Start parsing, path: " + this.path + "\n");
         //List<Feature> res = new ArrayList<>();

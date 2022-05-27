@@ -27,7 +27,8 @@ public class Predict {
             boolean beginFlag = false;
             String line = null;
             while ((line = in.readLine()) != null) {
-                if(line.equals("next line to start.")) {
+                System.out.println(line);
+                if(line.equals("MethodName FileName Probability")) {
                     beginFlag = true;
                     continue;
                 }
@@ -36,7 +37,6 @@ public class Predict {
                     PredictResult predictResult = new PredictResult(r[0], r[1], Float.parseFloat(r[2]));
                     resultList.add(predictResult);
                 }
-                System.out.println(line);
             }
             in.close();
             proc.waitFor();
